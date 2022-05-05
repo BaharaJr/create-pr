@@ -54,6 +54,7 @@ const checkCompareCommits = async ({ head, owner, full_name, repo }) => {
   });
 };
 const pr = async () => {
+  console.log(JSON.stringify(context))
   try {
     const { message } = context?.payload?.head_commit;
     let branch_name = message
