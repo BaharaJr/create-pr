@@ -8494,18 +8494,18 @@ async function run() {
       break;
   }
 }
-const checkCompareCommits = async ({ branch_name, context }) => {
+const checkCompareCommits = async ({ head, owner, full_name, repo }) => {
   let commits = '';
   const compare_commits = await octokit.request(
-    `GET /repos/${context.payload?.repository?.full_name}/compare/${DESTINATION_BRANCH}...${branch_name}`,
+    `GET /repos/${full_name}/compare/${DESTINATION_BRANCH}...${head}`,
     {
-      owner: context.payload?.repository?.owner?.login,
-      repo: context.payload?.repository?.name,
+      owner,
+      repo,
       base: DESTINATION_BRANCH,
-      head: branch_name,
+      head,
     },
   );
-console.log(commits)
+  console.log(commits);
   if (compare_commits?.data?.commits?.length === 0) {
     return;
   }
@@ -8524,6 +8524,7 @@ console.log(commits)
   });
 };
 const pr = async () => {
+  console.log(JSON.stringify(context))
   try {
     const { message } = context?.payload?.head_commit;
     let branch_name = message
@@ -8536,7 +8537,12 @@ const pr = async () => {
     if (!message || !branch_name || branch_name === '') {
       branch_name = context.payload.ref?.replace('refs/heads/', '');
     }
-    await checkCompareCommits();
+    await checkCompareCommits({
+      head: branch_name,
+      owner: context?.payload?.repository?.owner,
+      full_name: context?.payload?.repository,
+      repo: context?.payload?.repository?.name,
+    });
   } catch (e) {
     core.setFailed(e.message);
   }
@@ -8597,14 +8603,14 @@ const createorupdatepr = async ({ branch, owner, repo, body, full_name }) => {
         },
       ],
     };
-    axios
+    /*axios
       .post(SLACK_WEBHOOK_URL, JSON.stringify(options))
       .then((response) => {
         console.log('SUCCEEDED: Sent slack webhook', response.data);
       })
       .catch((error) => {
         console.log('FAILED: Send slack webhook', error);
-      });
+      });*/
   }
 };
 run();
