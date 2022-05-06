@@ -8524,18 +8524,13 @@ const checkCompareCommits = async ({ head, owner, full_name, repo }) => {
   });
 };
 const pr = async () => {
-  console.log(JSON.stringify(context))
+  console.log(JSON.stringify(context));
   try {
     const { message } = context?.payload?.head_commit;
-    let branch_name = message
-      ?.split('from')[1]
-      ?.split('\n')[0]
-      ?.split('/')
-      ?.slice(1)
-      ?.join('/');
 
     if (!message || !branch_name || branch_name === '') {
-      branch_name = context.payload.ref?.replace('refs/heads/', '');
+      const branch = context?.payload?.ref?.split('/');
+      branch_name = branch[branch.length - 1];
     }
     await checkCompareCommits({
       head: branch_name,
@@ -8544,6 +8539,7 @@ const pr = async () => {
       repo: context?.payload?.repository?.name,
     });
   } catch (e) {
+    console.log('FAILED', e);
     core.setFailed(e.message);
   }
 };
