@@ -58,53 +58,57 @@ const createorupdatepr = async ({ branch, owner, repo, body, full_name }) => {
       });
       return updatepr;
     }
-  } catch (e) {}
+  } catch (e) {
+    core.setFailed(e.message);
+  }
 };
 const checkCompareCommits = async ({ head, owner, full_name, repo }) => {
-  let { commits } = await octokit.request(
-    `GET /repos/${full_name}/compare/${DESTINATION_BRANCH}...${head}`,
-    {
+  try {
+    let { commits } = (
+      await octokit.request(
+        `GET /repos/${full_name}/compare/${DESTINATION_BRANCH}...${head}`,
+        {
+          owner,
+          repo,
+          base: DESTINATION_BRANCH,
+          head,
+        },
+      )
+    ).data;
+    if ((commits || []).length === 0) {
+      core.warning('Trigger has no commit');
+      return;
+    }
+
+    commits = (commits || [])
+      .map((e, i) => {
+        return i === 0 ? '> ' + e.commit.message : e.commit.message;
+      })
+      .join('\n\n' + '> ');
+
+    await createorupdatepr({
+      branch: head,
       owner,
       repo,
-      base: DESTINATION_BRANCH,
-      head,
-    },
-  );
-  console.log(commits);
-  if ((commits || []).length === 0) {
-    core.warning('Trigger has no commit');
-    return;
+      full_name,
+      body: commits,
+    });
+  } catch (e) {
+    core.setFailed(e.message);
   }
-
-  commits = (commits || [])
-    .map((e, i) => {
-      return i === 0 ? '> ' + e.commit.message : e.commit.message;
-    })
-    .join('\n\n' + '> ');
-
-  console.log('COMMITS', commits);
-
-  await createorupdatepr({
-    branch: head,
-    owner,
-    repo,
-    full_name,
-    body: commits,
-  });
 };
 const pr = async () => {
   try {
     const { message } = context?.payload?.head_commit;
     const branch = context?.payload?.ref?.split('/');
     if (!message.includes(KEYWORD)) {
-      core.warning('Not release commit');
+      core.info('Not a PR message');
       return;
     }
-    branch_name = branch[branch.length - 1];
     await checkCompareCommits({
-      head: branch_name,
-      owner: context?.payload?.repository?.owner,
-      full_name: context?.payload?.repository,
+      head: branch[branch.length - 1],
+      owner: context?.payload?.repository?.owner?.login,
+      full_name: context?.payload?.repository?.full_name,
       repo: context?.payload?.repository?.name,
     });
   } catch (e) {
