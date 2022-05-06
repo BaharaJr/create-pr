@@ -59,11 +59,12 @@ const createorupdatepr = async ({ branch, owner, repo, body, full_name }) => {
       return updatepr;
     }
   } catch (e) {
-    console.log('CREAETING',e)
-    core.setFailed(e.message)
+    console.log('CREAETING', e);
+    core.setFailed(e.message);
   }
 };
 const checkCompareCommits = async ({ head, owner, full_name, repo }) => {
+  console.log('FULL_NAME', full_name);
   try {
     let { commits } = await octokit.request(
       `GET /repos/${full_name}/compare/${DESTINATION_BRANCH}...${head}`,
@@ -110,8 +111,8 @@ const pr = async () => {
     }
     await checkCompareCommits({
       head: branch[branch.length - 1],
-      owner: context?.payload?.repository?.owner,
-      full_name: context?.payload?.repository,
+      owner: context?.payload?.repository?.owner?.login,
+      full_name: context?.payload?.repository?.full_name,
       repo: context?.payload?.repository?.name,
     });
   } catch (e) {
