@@ -8528,39 +8528,47 @@ const createorupdatepr = async ({ branch, owner, repo, body, full_name }) => {
       });
       return updatepr;
     }
-  } catch (e) {}
+  } catch (e) {
+    console.log('CREAETING',e)
+    core.setFailed(e.message)
+  }
 };
 const checkCompareCommits = async ({ head, owner, full_name, repo }) => {
-  let { commits } = await octokit.request(
-    `GET /repos/${full_name}/compare/${DESTINATION_BRANCH}...${head}`,
-    {
+  try {
+    let { commits } = await octokit.request(
+      `GET /repos/${full_name}/compare/${DESTINATION_BRANCH}...${head}`,
+      {
+        owner,
+        repo,
+        base: DESTINATION_BRANCH,
+        head,
+      },
+    );
+    console.log(commits);
+    if ((commits || []).length === 0) {
+      core.warning('Trigger has no commit');
+      return;
+    }
+
+    commits = (commits || [])
+      .map((e, i) => {
+        return i === 0 ? '> ' + e.commit.message : e.commit.message;
+      })
+      .join('\n\n' + '> ');
+
+    console.log('COMMITS', commits);
+
+    await createorupdatepr({
+      branch: head,
       owner,
       repo,
-      base: DESTINATION_BRANCH,
-      head,
-    },
-  );
-  console.log(commits);
-  if ((commits || []).length === 0) {
-    core.warning('Trigger has no commit');
-    return;
+      full_name,
+      body: commits,
+    });
+  } catch (e) {
+    console.log('COMPARE', e);
+    core.setFailed(e.message);
   }
-
-  commits = (commits || [])
-    .map((e, i) => {
-      return i === 0 ? '> ' + e.commit.message : e.commit.message;
-    })
-    .join('\n\n' + '> ');
-
-  console.log('COMMITS', commits);
-
-  await createorupdatepr({
-    branch: head,
-    owner,
-    repo,
-    full_name,
-    body: commits,
-  });
 };
 const pr = async () => {
   try {
@@ -8577,6 +8585,7 @@ const pr = async () => {
       repo: context?.payload?.repository?.name,
     });
   } catch (e) {
+    console.log('PR', e);
     core.setFailed(e.message);
   }
 };
