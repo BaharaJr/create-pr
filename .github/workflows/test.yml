@@ -14,3 +14,4 @@ jobs:
         with:
           GITHUB_TOKEN: ${{secrets.TOKEN}}
           DESTINATION_BRANCH: ${{secrets.BRANCH}}
+          KEYWORD: ${{secrets.KEYWORD}}
