@@ -1,5 +1,5 @@
-name: 'Automatically Merge Pull Requests'
-description: 'Automatically Merge Pull Requests'
+name: 'Automatically Create Pull Requests'
+description: 'Automatically Create Pull Requests'
 author: 'Bennett Benedict'
 
 inputs:
