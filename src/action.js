@@ -59,12 +59,10 @@ const createorupdatepr = async ({ branch, owner, repo, body, full_name }) => {
       return updatepr;
     }
   } catch (e) {
-    console.log('CREAETING', e);
     core.setFailed(e.message);
   }
 };
 const checkCompareCommits = async ({ head, owner, full_name, repo }) => {
-  console.log('FULL_NAME', full_name);
   try {
     let { commits } = (
       await octokit.request(
@@ -77,7 +75,6 @@ const checkCompareCommits = async ({ head, owner, full_name, repo }) => {
         },
       )
     ).data;
-    console.log(commits);
     if ((commits || []).length === 0) {
       core.warning('Trigger has no commit');
       return;
@@ -89,8 +86,6 @@ const checkCompareCommits = async ({ head, owner, full_name, repo }) => {
       })
       .join('\n\n' + '> ');
 
-    console.log('COMMITS', commits);
-
     await createorupdatepr({
       branch: head,
       owner,
@@ -99,7 +94,6 @@ const checkCompareCommits = async ({ head, owner, full_name, repo }) => {
       body: commits,
     });
   } catch (e) {
-    console.log('COMPARE', e);
     core.setFailed(e.message);
   }
 };
@@ -118,7 +112,6 @@ const pr = async () => {
       repo: context?.payload?.repository?.name,
     });
   } catch (e) {
-    console.log('PR', e);
     core.setFailed(e.message);
   }
 };
