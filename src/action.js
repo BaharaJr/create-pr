@@ -97,7 +97,7 @@ const pr = async () => {
     const { message } = context?.payload?.head_commit;
     const branch = context?.payload?.ref?.split('/');
     if (!message.includes(KEYWORD)) {
-      core.warning('Not release commit');
+      core.info('Not a PR message');
       return;
     }
     await checkCompareCommits({
