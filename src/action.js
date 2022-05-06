@@ -26,8 +26,7 @@ async function run() {
   }
 }
 const checkCompareCommits = async ({ head, owner, full_name, repo }) => {
-  let commits = '';
-  const compare_commits = await octokit.request(
+  const { commits } = await octokit.request(
     `GET /repos/${full_name}/compare/${DESTINATION_BRANCH}...${head}`,
     {
       owner,
@@ -37,12 +36,12 @@ const checkCompareCommits = async ({ head, owner, full_name, repo }) => {
     },
   );
   console.log(commits);
-  if (compare_commits?.data?.commits?.length === 0) {
+  if ((commits || []).length === 0) {
     core.warning('Trigger has no commit');
     return;
   }
 
-  compare_commits?.data?.commits?.forEach((e, i) => {
+  (commits || []).forEach((e, i) => {
     if (
       !e?.commit?.message.includes('Merge') &&
       !e?.commit?.message.includes('Merged') &&
