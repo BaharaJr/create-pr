@@ -8474,6 +8474,7 @@ const core = __nccwpck_require__(2186);
 
 const GITHUB_TOKEN = core.getInput('GITHUB_TOKEN');
 const DESTINATION_BRANCH = core.getInput('DESTINATION_BRANCH');
+const KEYWORD = core.getInput('KEYWORD');
 const octokit = github.getOctokit(GITHUB_TOKEN);
 const { context = {} } = github;
 
@@ -8507,6 +8508,7 @@ const checkCompareCommits = async ({ head, owner, full_name, repo }) => {
   );
   console.log(commits);
   if (compare_commits?.data?.commits?.length === 0) {
+    core.warning('Trigger has no commit');
     return;
   }
 
@@ -8524,14 +8526,14 @@ const checkCompareCommits = async ({ head, owner, full_name, repo }) => {
   });
 };
 const pr = async () => {
-  console.log(JSON.stringify(context));
   try {
     const { message } = context?.payload?.head_commit;
-
-    if (!message || !branch_name || branch_name === '') {
-      const branch = context?.payload?.ref?.split('/');
-      branch_name = branch[branch.length - 1];
+    const branch = context?.payload?.ref?.split('/');
+    if (!message.includes(KEYWORD)) {
+      core.warning('Not release commit');
+      return;
     }
+    branch_name = branch[branch.length - 1];
     await checkCompareCommits({
       head: branch_name,
       owner: context?.payload?.repository?.owner,
@@ -8539,74 +8541,7 @@ const pr = async () => {
       repo: context?.payload?.repository?.name,
     });
   } catch (e) {
-    console.log('FAILED', e);
     core.setFailed(e.message);
-  }
-};
-const createorupdatepr = async ({ branch, owner, repo, body, full_name }) => {
-  try {
-    const existing_pr = await octokit.rest.pulls.list({
-      owner,
-      repo,
-      state: 'open',
-      head: owner + ':' + branch,
-      base: DESTINATION_BRANCH,
-    });
-    if (existing_pr?.data?.length === 0) {
-      // create new pr
-      const createpr = await octokit.request(`POST /repos/${full_name}/pulls`, {
-        owner,
-        repo,
-        title: branch,
-        body,
-        head: branch,
-        base: DESTINATION_BRANCH,
-      });
-      return createpr;
-    } else {
-      // update existing pr
-      const updatepr = await octokit.rest.pulls.update({
-        pull_number: existing_pr?.data[0].number,
-        owner,
-        repo,
-        title: branch,
-        body,
-        head: branch,
-        base: DESTINATION_BRANCH,
-      });
-      return updatepr;
-    }
-  } catch (error) {
-    console.log(error.message);
-    let options = {
-      blocks: [
-        {
-          type: 'header',
-          text: {
-            type: 'plain_text',
-            text: 'New notification sent from github actions',
-            emoji: true,
-          },
-        },
-        {
-          type: 'context',
-          elements: [
-            {
-              type: 'mrkdwn',
-              text: `❌ failed to create pull request to ${base} due to - ${error?.message}`,
-            },
-          ],
-        },
-      ],
-    };
-    /*axios
-      .post(SLACK_WEBHOOK_URL, JSON.stringify(options))
-      .then((response) => {
-        console.log('SUCCEEDED: Sent slack webhook', response.data);
-      })
-      .catch((error) => {
-        console.log('FAILED: Send slack webhook', error);
-      });*/
   }
 };
 run();

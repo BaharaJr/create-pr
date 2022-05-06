@@ -6,6 +6,12 @@ inputs:
   GITHUB_TOKEN:
     description: 'GitHub Token'
     required: true
+  DESTINATION_BRANCH:
+    description: 'Destination Branch'
+    required: true
+  KEYWORD:
+    description: 'Keyword included in commit to trigger action'
+    required: true
 runs:
   using: 'node16'
   main: 'action/index.js'
