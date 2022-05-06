@@ -66,15 +66,17 @@ const createorupdatepr = async ({ branch, owner, repo, body, full_name }) => {
 const checkCompareCommits = async ({ head, owner, full_name, repo }) => {
   console.log('FULL_NAME', full_name);
   try {
-    let { commits } = await octokit.request(
-      `GET /repos/${full_name}/compare/${DESTINATION_BRANCH}...${head}`,
-      {
-        owner,
-        repo,
-        base: DESTINATION_BRANCH,
-        head,
-      },
-    );
+    let { commits } = (
+      await octokit.request(
+        `GET /repos/${full_name}/compare/${DESTINATION_BRANCH}...${head}`,
+        {
+          owner,
+          repo,
+          base: DESTINATION_BRANCH,
+          head,
+        },
+      )
+    ).data;
     console.log(commits);
     if ((commits || []).length === 0) {
       core.warning('Trigger has no commit');
