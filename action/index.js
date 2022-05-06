@@ -8495,9 +8495,43 @@ async function run() {
       break;
   }
 }
+const createorupdatepr = async ({ branch, owner, repo, body, full_name }) => {
+  try {
+    const existing_pr = await octokit.rest.pulls.list({
+      owner,
+      repo,
+      state: 'open',
+      head: owner + ':' + branch,
+      base: DESTINATION_BRANCH,
+    });
+    if (existing_pr?.data?.length === 0) {
+      // create new pr
+      const createpr = await octokit.request(`POST /repos/${full_name}/pulls`, {
+        owner,
+        repo,
+        title: branch,
+        body,
+        head: branch,
+        base: DESTINATION_BRANCH,
+      });
+      return createpr;
+    } else {
+      // update existing pr
+      const updatepr = await octokit.rest.pulls.update({
+        pull_number: existing_pr?.data[0].number,
+        owner,
+        repo,
+        title: branch,
+        body,
+        head: branch,
+        base: DESTINATION_BRANCH,
+      });
+      return updatepr;
+    }
+  } catch (e) {}
+};
 const checkCompareCommits = async ({ head, owner, full_name, repo }) => {
-  let commits = '';
-  const compare_commits = await octokit.request(
+  let { commits } = await octokit.request(
     `GET /repos/${full_name}/compare/${DESTINATION_BRANCH}...${head}`,
     {
       owner,
@@ -8507,22 +8541,25 @@ const checkCompareCommits = async ({ head, owner, full_name, repo }) => {
     },
   );
   console.log(commits);
-  if (compare_commits?.data?.commits?.length === 0) {
+  if ((commits || []).length === 0) {
     core.warning('Trigger has no commit');
     return;
   }
 
-  compare_commits?.data?.commits?.forEach((e, i) => {
-    if (
-      !e?.commit?.message.includes('Merge') &&
-      !e?.commit?.message.includes('Merged') &&
-      !e?.commit?.message.includes('skip') &&
-      !e?.commit?.message.includes('Skip')
-    )
-      commits =
-        i === 0
-          ? '> ' + e.commit.message
-          : commits + '\n\n' + '> ' + e.commit.message;
+  commits = (commits || [])
+    .map((e, i) => {
+      return i === 0 ? '> ' + e.commit.message : e.commit.message;
+    })
+    .join('\n\n' + '> ');
+
+  console.log('COMMITS', commits);
+
+  await createorupdatepr({
+    branch: head,
+    owner,
+    repo,
+    full_name,
+    body: commits,
   });
 };
 const pr = async () => {
@@ -8533,9 +8570,8 @@ const pr = async () => {
       core.warning('Not release commit');
       return;
     }
-    branch_name = branch[branch.length - 1];
     await checkCompareCommits({
-      head: branch_name,
+      head: branch[branch.length - 1],
       owner: context?.payload?.repository?.owner,
       full_name: context?.payload?.repository,
       repo: context?.payload?.repository?.name,

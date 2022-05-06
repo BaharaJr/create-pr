@@ -100,9 +100,8 @@ const pr = async () => {
       core.warning('Not release commit');
       return;
     }
-    branch_name = branch[branch.length - 1];
     await checkCompareCommits({
-      head: branch_name,
+      head: branch[branch.length - 1],
       owner: context?.payload?.repository?.owner,
       full_name: context?.payload?.repository,
       repo: context?.payload?.repository?.name,
